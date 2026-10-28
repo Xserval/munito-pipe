@@ -7,7 +7,7 @@ I need a basic API request, hyper is much too low level and work for that as I d
 Ureq is good but I do need async because it needs to be able to stream the response token by token, and send many requests concurrently later and I don't need to be blocking any I/O
 So reqwest is good.
 
-To use reqwest which I need, I need to implement Tokio on this project
+To use reqwest which I need, I need to depend on Tokio on this project
 
 2-Choices for tokio, use multithread or single
 To be safe and as multi thread is the default of the library I sticked to multi thread, especially since that would relieve the CPU in case of heavy calls from my RAG project.
