@@ -1,3 +1,4 @@
+use serde_json::Value;
 use serde_json::json;
 use std::env;
 #[tokio::main]
@@ -16,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let body = json!({
       "model": "qwen/qwen3.8-27b",
-      "messages": [{"role": "user", "content": "Say hello in one sentence."}],
+      "messages": [{"role": "user", "content": "Introduce yourself as a small API Client that is being built to learn rust and using Munito AI"}],
       "max_tokens": 1024
     });
     let client = reqwest::Client::new();
@@ -36,7 +37,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("{}", &response.status());
 
-    let response_text = response.text().await?;
-    println!("{}", response_text);
+    let response_text = &response.text().await?;
+    let json_value: Value = serde_json::from_str(&response_text)?;
+    println!(
+        "API answer :{}, cost in token {}",
+        json_value["choices"][0]["message"]["content"]
+            .as_str()
+            .unwrap_or("ERROR"),
+        json_value["usage"]["total_tokens"]
+    );
     Ok(())
 }
