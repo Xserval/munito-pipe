@@ -12,7 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(e) => {
             eprintln!("Ho no an error {}", e);
-            String::from("0")
+            return Err(e.into());
         }
     };
     let body = json!({
@@ -34,17 +34,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err(e.into());
         }
     };
+    let response_status = response.status();
+    let response_body = response.text().await?;
+    if response_status.is_success() {
+        println!("The request is valid ! The status is {}", response_status);
+    } else {
+        let message = format!(
+            "request failed with {} : {}",
+            response_status, response_body
+        );
+        return Err(message.into());
+    }
 
-    println!("{}", &response.status());
-
-    let response_text = &response.text().await?;
-    let json_value: Value = serde_json::from_str(&response_text)?;
+    let json_value: Value = serde_json::from_str(&response_body)?;
+    let answer_of_request = json_value["choices"][0]["message"]["content"]
+        .as_str()
+        .ok_or("The request couldn't be unwrap please look at the logs")?;
+    let cost_of_request = &json_value["usage"]["total_tokens"];
     println!(
         "API answer :{}, cost in token {}",
-        json_value["choices"][0]["message"]["content"]
-            .as_str()
-            .unwrap_or("ERROR"),
-        json_value["usage"]["total_tokens"]
+        answer_of_request, cost_of_request
     );
     Ok(())
 }
