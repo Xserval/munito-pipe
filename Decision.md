@@ -19,3 +19,13 @@ Because we're using async and await? a lot, we need main to return error, after 
 - thiserror: for defining your own error types, which libraries use so callers can react to specific errors.
 
 For now, for testing reason and before industrializing it, Box<dyn Error> is what will be implemented, further down, and after researching on it we'll probably move to anyhow
+
+4- Typed structs instead of serde_json::Value for the response
+
+At first I parsed the response into a Value and dug into it with ["choices"][0]["message"]["content"]. It worked, but it hid a problem: I forgot that "choices" is a list, and instead of an error I got "null" printed in my output. Nothing told me my path was wrong.
+
+The format of the response is documented and stable, so I switched to structs that mirror the JSON (Message, Choice, Usage, JsonAnswer) and let serde fill them in. Now a wrong field name is a compile error, and if the API sends something unexpected, parsing fails with a message that names the field.
+
+I made content and reasoning Option<String> because a model can answer without one of them. With a plain String, a missing field would make the whole parse fail. With Option, the parse works and I decide what to do when the value is None.
+
+The downside: if the API changes its format, parsing can fail where the Value version would have kept going. For a client library I prefer a clear error over a silent null.

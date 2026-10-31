@@ -1,8 +1,44 @@
+use serde::Deserialize;
 use serde_json::Value;
 use serde_json::json;
 use std::env;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    #[derive(Deserialize)]
+    struct Message {
+        role: String,
+        content: Option<String>,
+        reasoning: Option<String>,
+    }
+    #[derive(Deserialize)]
+    struct Choice {
+        index: u32,
+        message: Message,
+        finish_reason: String,
+    }
+    #[derive(Deserialize)]
+    struct Usage {
+        prompt_tokens: u32,
+        completion_tokens: u32,
+        total_tokens: u32,
+        prompt_tokens_details: PromptTokensDetails,
+    }
+    #[derive(Deserialize)]
+    struct PromptTokensDetails {
+        cached_tokens: u32,
+        created_cache_tokens: u32,
+    }
+    #[derive(Deserialize)]
+    struct JsonAnswer {
+        id: String,
+        object: String,
+        created: u64,
+        model: String,
+        choices: Vec<Choice>,
+        usage: Usage,
+        service_tier: String,
+    }
+
     dotenvy::dotenv().ok();
     let key = env::var("MUNITO_API_KEY");
     let api_key = match key {
@@ -34,6 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err(e.into());
         }
     };
+
     let response_status = response.status();
     let response_body = response.text().await?;
     if response_status.is_success() {
