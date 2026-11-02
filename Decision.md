@@ -29,3 +29,40 @@ The format of the response is documented and stable, so I switched to structs th
 I made content and reasoning Option<String> because a model can answer without one of them. With a plain String, a missing field would make the whole parse fail. With Option, the parse works and I decide what to do when the value is None.
 
 The downside: if the API changes its format, parsing can fail where the Value version would have kept going. For a client library I prefer a clear error over a silent null.
+
+5- Which fields of the response I keep in my structs
+
+The API response has a lot of fields, and my structs only need to
+describe the ones I actually want. serde ignores any field I don't
+declare, so leaving one out can never break the parsing.
+
+Removed (bookkeeping, nothing a user would do with it):
+- id, object, created: identifiers and metadata about the response
+- index: always 0 when there is a single choice
+- prompt_tokens_details (and its struct): cache details I don't use
+
+Kept:
+- model: tells which model really answered
+- choices, message and content: the reply itself
+- finish_reason: lets me tell a complete answer from one that was cut
+  off, which I can't see otherwise
+- usage with prompt_tokens, completion_tokens and total_tokens: the
+  cost of a request, which a user of a library will want
+- reasoning: reasoning models send their thoughts here, so it could be
+  useful to expose later
+-role: in case the user would want to know the role of the chat, i'm still considering keeping it or not as it'll always be "assistant" in a chat completion 
+
+My rule: keep a field if it's useful to a user of the crate AND the API
+always sends it. If it's useful but not guaranteed, make it an Option.
+Otherwise remove it. A field that isn't an Option is a promise that the
+API always sends it, and if it doesn't, the whole parse fails even when
+the reply itself was fine.
+
+That's why service_tier is an Option: it isn't part of the core chat
+format, so I can't be sure it's always there. content and reasoning are
+Options for the same reason.
+
+I kept a few extra fields because if this becomes a crate, having a bit
+more information is easier than not having enough. Adding a field later
+is a one-line change, so I can still add or remove them when real needs
+show up.

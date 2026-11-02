@@ -1,44 +1,13 @@
-use serde::Deserialize;
-use serde_json::Value;
 use serde_json::json;
 use std::env;
+mod answer_struct;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    #[derive(Deserialize)]
-    struct Message {
-        role: String,
-        content: Option<String>,
-        reasoning: Option<String>,
-    }
-    #[derive(Deserialize)]
-    struct Choice {
-        index: u32,
-        message: Message,
-        finish_reason: String,
-    }
-    #[derive(Deserialize)]
-    struct Usage {
-        prompt_tokens: u32,
-        completion_tokens: u32,
-        total_tokens: u32,
-        prompt_tokens_details: PromptTokensDetails,
-    }
-    #[derive(Deserialize)]
-    struct PromptTokensDetails {
-        cached_tokens: u32,
-        created_cache_tokens: u32,
-    }
-    #[derive(Deserialize)]
-    struct JsonAnswer {
-        id: String,
-        object: String,
-        created: u64,
-        model: String,
-        choices: Vec<Choice>,
-        usage: Usage,
-        service_tier: String,
-    }
+    // Declaring the usage of the struct for the JSON answer
+    use answer_struct::JsonAnswer;
 
+    //Initiate the env variable and checking it
     dotenvy::dotenv().ok();
     let key = env::var("MUNITO_API_KEY");
     let api_key = match key {
@@ -51,6 +20,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err(e.into());
         }
     };
+
+    //Creating the body of the JSON Request to the API through Munito
     let body = json!({
       "model": "qwen/qwen3.8-27b",
       "messages": [{"role": "user", "content": "Introduce yourself as a small API Client that is being built to learn rust and using Munito AI"}],
@@ -63,6 +34,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .json(&body)
         .send()
         .await;
+
+    //Setting up all the check for errors before reading through the answer
     let response = match request_to_api {
         Ok(val) => val,
         Err(e) => {
@@ -81,6 +54,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         return Err(message_fail.into());
     }
+
+    //Finally going through the struct of the JsonAnswer to get all the values we need before printing it
     let json_answer: JsonAnswer = serde_json::from_str(&response_body)?;
     let choice_in_json = json_answer
         .choices
